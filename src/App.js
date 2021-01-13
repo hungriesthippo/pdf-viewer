@@ -22,13 +22,6 @@ const resetHash = () => {
   document.location.hash = "";
 };
 
-const HighlightPopup = ({ comment }) =>
-  comment.text ? (
-    <div className="Highlight__popup">
-      {comment.emoji} {comment.text}
-    </div>
-  ) : null;
-
 const url = decodeURI(document.location.search.split('url=')[1])
 
 class App extends Component {
@@ -55,7 +48,7 @@ class App extends Component {
     );
     window.addEventListener(
       'message',
-      e => this.loadHighlights(e),
+      e => this.handleMessage(e),
       false);
   }
 
@@ -65,9 +58,14 @@ class App extends Component {
     return highlights.find(highlight => highlight.id === id);
   }
 
-  loadHighlights(event) {
-    if (this.hasLoadedHighlights) return; // only load once
-    if (!event.data.highlights) return;
+  handleMessage(event) {
+    // handle scroll
+    if (event.data.scrollTo) {
+      this.scrollViewerTo(event.data.scrollTo);
+      return;
+    }
+    // handle load highlights
+    if (!event.data.highlights || this.hasLoadedHighlights) return;
     for (let i = 0; i < event.data.highlights.length; i++) {
       this.addHighlight(event.data.highlights[i], false);
     }
@@ -171,11 +169,7 @@ class App extends Component {
 
                   return (
                     <Popup
-                      popupContent={<HighlightPopup {...highlight} />}
-                      onMouseOver={popupContent =>
-                        setTip(highlight, highlight => popupContent)
-                      }
-                      onMouseOut={hideTip}
+                      popupContent=""
                       key={index}
                       children={component}
                     />
