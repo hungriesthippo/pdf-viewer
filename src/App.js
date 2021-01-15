@@ -79,11 +79,11 @@ class App extends Component {
     this.hasLoadedHighlights = true;
   }
 
-  addHighlight(highlight, sendToRoam) {
+  addHighlight(highlight, sendMessage) {
     const { highlights } = this.state;
 
-    // Send message with highlight content to Roam
-    if (sendToRoam) {
+    // Send message with highlight content to hosting window
+    if (sendMessage) {
       if (highlight.content.image) {
         const filename = `${new Date().getTime()}.png`
         const imageRef = storageRef.child(`images/${filename}`)
