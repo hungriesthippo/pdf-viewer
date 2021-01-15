@@ -2,6 +2,9 @@ import './App.css';
 
 import React, { Component } from "react";
 
+import firebase from 'firebase/app';
+import 'firebase/storage';
+
 import {
   PdfLoader,
   PdfHighlighter,
@@ -12,6 +15,10 @@ import {
 } from "react-pdf-highlighter";
 
 import Spinner from "./Spinner";
+
+firebase.initializeApp({storageBucket: 'roampdf.appspot.com'});
+const storage = firebase.storage();
+const storageRef = storage.ref().child('public');
 
 const getNextId = () => String(Math.random()).slice(2);
 
@@ -76,8 +83,20 @@ class App extends Component {
     const { highlights } = this.state;
 
     // Send message with highlight content to Roam
-    if (sendToRoam)
-      window.parent.postMessage({ highlight, url: encodeURI(url) }, '*');
+    if (sendToRoam) {
+      if (highlight.content.image) {
+        const filename = `${new Date().getTime()}.png`
+        const imageRef = storageRef.child(`images/${filename}`)
+        imageRef.putString(highlight.content.image, 'data_url').then(() =>
+          imageRef.getDownloadURL().then(imageUrl => {
+            const highlightWithImage = { ...highlight };
+            highlightWithImage.imageUrl = imageUrl;
+            window.parent.postMessage({ highlight: highlightWithImage, url: encodeURI(url) }, '*');
+          }))
+      } else {
+        window.parent.postMessage({ highlight, url: encodeURI(url) }, '*');
+      }
+    }
 
     this.setState({
       highlights: [{ ...highlight, id: getNextId() }, ...highlights]
