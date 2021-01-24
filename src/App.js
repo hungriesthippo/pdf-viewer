@@ -16,7 +16,9 @@ import {
 
 import Spinner from "./Spinner";
 
-firebase.initializeApp({storageBucket: 'roampdf.appspot.com'});
+if (!firebase.apps.length) {
+  firebase.initializeApp({ storageBucket: 'roampdf.appspot.com' });
+}
 const storage = firebase.storage();
 const storageRef = storage.ref().child('public');
 
@@ -121,15 +123,8 @@ class App extends Component {
     const { highlights } = this.state;
 
     return (
-      <div className="App" style={{ display: "flex", height: "100vh" }}>
-        <div
-          style={{
-            height: "100vh",
-            width: "100vw",
-            overflowY: "scroll",
-            position: "relative"
-          }}
-        >
+      <div className="App">
+        <div>
           <PdfLoader url={url} beforeLoad={<Spinner />}>
             {pdfDocument => (
               <PdfHighlighter
@@ -188,6 +183,7 @@ class App extends Component {
 
                   return (
                     <Popup
+                      onMouseOver={()=>{}}
                       popupContent=""
                       key={index}
                       children={component}
