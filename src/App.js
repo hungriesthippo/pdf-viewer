@@ -75,14 +75,14 @@ class App extends Component {
   removeHighlight = (e) => {
     const highlightId = e.target.dataset.highlightId;
     const { highlights } = this.state;
-    const removeIndex = highlights.findIndex(hl => hl.id === highlightId);
-    if (removeIndex >= 0) {
+    const highlight = highlights.find(hl => hl.id === highlightId);
+    if (highlight) {
       this.setState({
         highlights: highlights.splice(removeIndex, removeIndex)
       });
     }
     e.target.style.display = "none";
-    window.parent.postMessage({ deleted: highlightId, url: encodeURI(url) }, '*');
+    window.parent.postMessage({ deleted: highlight, url: encodeURI(url) }, '*');
   }
 
   handleMessage(event) {
