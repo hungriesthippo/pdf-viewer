@@ -67,6 +67,24 @@ class App extends Component {
     return highlights.find(highlight => highlight.id === id);
   }
 
+  HighlightPopup = (data) =>
+    <button className="remove" onClick={this.removeHighlight} data-highlightid={data.highlightId}>
+      ×
+    </button>;
+
+  removeHighlight = (e) => {
+    const highlightId = e.target.dataset.highlightId;
+    const { highlights } = this.state;
+    const removeIndex = highlights.findIndex(hl => hl.id === highlightId);
+    if (removeIndex >= 0) {
+      this.setState({
+        highlights: highlights.splice(removeIndex, removeIndex)
+      });
+    }
+    e.target.style.display = "none";
+    window.parent.postMessage({ deleted: highlightId, url: encodeURI(url) }, '*');
+  }
+
   handleMessage(event) {
     // handle scroll
     if (event.data.scrollTo) {
