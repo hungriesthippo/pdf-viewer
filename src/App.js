@@ -157,7 +157,10 @@ class App extends Component {
             {pdfDocument => (
               <PdfHighlighter
                 pdfDocument={pdfDocument}
-                enableAreaSelection={event => event.altKey}
+                enableAreaSelection={event => {
+                  console.log(event.buttons);
+                  return event.altKey;
+                }}
                 onScrollChange={resetHash}
                 scrollRef={scrollTo => {
                   this.scrollViewerTo = scrollTo;
