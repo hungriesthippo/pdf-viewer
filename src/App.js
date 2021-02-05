@@ -39,7 +39,7 @@ class App extends Component {
     highlights: []
   };
 
-  scrollViewerTo = (highlight) => {};
+  scrollViewerTo = (highlight) => {}; // provided by PdfHighligher
 
   scrollToHighlightFromHash = () => {
     const highlight = this.getHighlightById(parseIdFromHash());
@@ -119,11 +119,21 @@ class App extends Component {
     });
   }
 
+  zoom(delta) {
+    const current = isNaN(window.PdfViewer.viewer.currentScaleValue) ? 1 : parseFloat(window.PdfViewer.viewer.currentScaleValue);
+    window.PdfViewer.viewer.currentScaleValue = Math.max(0, current + delta);
+    console.log(window.PdfViewer.viewer.currentScaleValue);
+  }
+
   render() {
     const { highlights } = this.state;
 
     return (
       <div className="App">
+        <div className="toolbar">
+          <button id="zoom-in" onClick={() => this.zoom(0.2)}>+</button>
+          <button id="zoom-out" onClick={() => this.zoom(-0.2)}>-</button>
+        </div>
         <div>
           <PdfLoader url={url} beforeLoad={<Spinner />}>
             {pdfDocument => (
@@ -183,8 +193,11 @@ class App extends Component {
 
                   return (
                     <Popup
-                      onMouseOver={()=>{}}
-                      popupContent=""
+                      popupContent={<this.HighlightPopup highlightId={highlight.id} />}
+                      onMouseOver={popupContent =>
+                        setTip(highlight, highlight => popupContent)
+                      }
+                      onMouseOut={hideTip}
                       key={index}
                       children={component}
                     />
