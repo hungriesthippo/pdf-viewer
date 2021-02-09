@@ -1,6 +1,6 @@
-import './App.css';
-
 import React, { Component } from "react";
+/* eslint import/no-webpack-loader-syntax: 0 */
+import PDFWorker from "worker-loader!pdfjs-dist/lib/pdf.worker.js";
 
 import firebase from 'firebase/app';
 import 'firebase/storage';
@@ -11,10 +11,14 @@ import {
   Tip,
   Highlight,
   Popup,
-  AreaHighlight
+  AreaHighlight,
+  setPdfWorker
 } from "react-pdf-highlighter";
 
 import Spinner from "./Spinner";
+import './App.css';
+
+setPdfWorker(PDFWorker);
 
 if (!firebase.apps.length) {
   firebase.initializeApp({ storageBucket: 'roampdf.appspot.com' });
@@ -141,7 +145,6 @@ class App extends Component {
   zoom(delta) {
     const current = isNaN(window.PdfViewer.viewer.currentScaleValue) ? 1 : parseFloat(window.PdfViewer.viewer.currentScaleValue);
     window.PdfViewer.viewer.currentScaleValue = Math.max(0, current + delta);
-    console.log(window.PdfViewer.viewer.currentScaleValue);
   }
 
   render() {
