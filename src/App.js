@@ -73,7 +73,7 @@ class App extends Component {
     </button>;
 
   removeHighlight = (e) => {
-    const highlightId = e.target.dataset.highlightId;
+    const highlightId = e.target.dataset.highlightid;
     const { highlights } = this.state;
     const removeIndex = highlights.findIndex(hl => hl.id === highlightId);
     if (removeIndex >= 0) {
