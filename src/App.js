@@ -157,7 +157,7 @@ class App extends Component {
           <button id="zoom-out" onClick={() => this.zoom(-0.2)}>-</button>
         </div>
         <div>
-          <PdfLoader url={url} beforeLoad={<Spinner />}>
+          <PdfLoader url={url} beforeLoad={<Spinner />} cMapUrl={"https://cdn.jsdelivr.net/npm/pdfjs-dist@2.6.347/cmaps/"} cMapPacked={true}>
             {pdfDocument => (
               <PdfHighlighter
                 pdfDocument={pdfDocument}
