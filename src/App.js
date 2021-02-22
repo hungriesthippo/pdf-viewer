@@ -26,7 +26,18 @@ if (!firebase.apps.length) {
 const storage = firebase.storage();
 const storageRef = storage.ref().child('public');
 
-const getNextId = () => String(Math.random()).slice(2);
+const getNextId = () => {
+  let nanoid=(t=21)=>{
+    let e="",r=crypto.getRandomValues(new Uint8Array(t));for(;t--;){
+      let n=63&r[t];e+=n<36?n.toString(36):n<62?(n-26).toString(36).toUpperCase():n<63?"_":"-"
+    }
+    return e
+  };
+  const nnid = nanoid(9);
+  console.log("in server")
+  console.log(nnid)
+  return nnid //nanoid(9);
+}
 
 const parseIdFromHash = () =>
   document.location.hash.slice("#highlight-".length);
@@ -76,17 +87,18 @@ class App extends Component {
       ×
     </button>;
 
-  removeHighlight = (e) => {
-    const highlightId = e.target.dataset.highlightid;
-    const { highlights } = this.state;
-    const removeIndex = highlights.findIndex(hl => hl.id === highlightId);
+  removeHighlight = (e) => {    
+    const highlightId = e.target.dataset.highlightid;    
+    const { highlights } = this.state;    
+    const removeIndex = highlights.findIndex(hl => hl.id === highlightId);    
     if (removeIndex >= 0) {
-      const highlight = highlights[removeIndex];
+      const highlight = highlights[removeIndex];      
+      highlights.splice(removeIndex, 1)
       this.setState({
-        highlights: highlights.splice(removeIndex, removeIndex)
+        highlights: highlights
       });
       window.parent.postMessage({ deleted: highlight, url: encodeURI(url) }, '*');
-    }
+    }    
     e.target.style.display = "none";
   }
 
@@ -109,13 +121,14 @@ class App extends Component {
 
     // Send message with highlight content to hosting window
     if (sendMessage) {
+      highlight.id = getNextId()
       if (highlight.content.image) {
         const filename = `${new Date().getTime()}.png`
         const imageRef = storageRef.child(`images/${filename}`)
         imageRef.putString(highlight.content.image, 'data_url').then(() =>
           imageRef.getDownloadURL().then(imageUrl => {
             const highlightWithImage = { ...highlight };
-            highlightWithImage.imageUrl = imageUrl;
+            highlightWithImage.imageUrl = imageUrl;            
             window.parent.postMessage({ highlight: highlightWithImage, url: encodeURI(url) }, '*');
           }))
       } else {
@@ -124,7 +137,7 @@ class App extends Component {
     }
 
     this.setState({
-      highlights: [{ ...highlight, id: getNextId() }, ...highlights]
+      highlights: [{ ...highlight }, ...highlights]
     });
   }
 
@@ -143,18 +156,34 @@ class App extends Component {
   }
 
   zoom(delta) {
-    const current = isNaN(window.PdfViewer.viewer.currentScaleValue) ? 1 : parseFloat(window.PdfViewer.viewer.currentScaleValue);
+    console.log("in zoom")
+    console.log(window.PdfViewer.viewer.currentScaleValue)
+    let current = window.PdfViewer.viewer.currentScaleValue
+    current = isNaN(current) ? 1 : parseFloat(current);
     window.PdfViewer.viewer.currentScaleValue = Math.max(0, current + delta);
   }
 
-  render() {
-    const { highlights } = this.state;
+  fit(event){
+    console.log("in fit")
+    console.log(window.PdfViewer.viewer.currentScaleValue)
+    let el = event.target;    
+    if(el.title === "Fit to page"){
+      el.title = "Fit to width";
+      window.PdfViewer.viewer.currentScaleValue = 'page-fit';
+    } else {
+      el.title = "Fit to page";
+      window.PdfViewer.viewer.currentScaleValue = 'page-width';
+    }
+  }
 
+  render() {
+    const { highlights } = this.state;    
     return (
       <div className="App">
         <div className="toolbar">
-          <button id="zoom-in" onClick={() => this.zoom(0.2)}>+</button>
-          <button id="zoom-out" onClick={() => this.zoom(-0.2)}>-</button>
+          <button id="zoom-in" title = "Zoom in" onClick={() => this.zoom(0.2)}>+</button>
+          <button id="zoom-out" title = "Zoom out" onClick={() => this.zoom(-0.2)}>-</button>
+          <button id="page-width-fit" title = "Fit to page" onClick={this.fit.bind(this)}>◽</button>
         </div>
         <div>
           <PdfLoader url={url} beforeLoad={<Spinner />} cMapUrl={"https://cdn.jsdelivr.net/npm/pdfjs-dist@2.6.347/cmaps/"} cMapPacked={true}>
