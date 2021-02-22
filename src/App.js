@@ -27,16 +27,13 @@ const storage = firebase.storage();
 const storageRef = storage.ref().child('public');
 
 const getNextId = () => {
-  let nanoid=(t=21)=>{
-    let e="",r=crypto.getRandomValues(new Uint8Array(t));for(;t--;){
-      let n=63&r[t];e+=n<36?n.toString(36):n<62?(n-26).toString(36).toUpperCase():n<63?"_":"-"
+  let nanoid = (t = 21) => {
+    let e = "", r = crypto.getRandomValues(new Uint8Array(t)); for (; t--;) {
+      let n = 63 & r[t]; e += n < 36 ? n.toString(36) : n < 62 ? (n - 26).toString(36).toUpperCase() : n < 63 ? "_" : "-"
     }
     return e
   };
-  const nnid = nanoid(9);
-  console.log("in server")
-  console.log(nnid)
-  return nnid //nanoid(9);
+  return nanoid(9);
 }
 
 const parseIdFromHash = () =>
@@ -54,7 +51,7 @@ class App extends Component {
     highlights: []
   };
 
-  scrollViewerTo = (highlight) => {}; // provided by PdfHighligher
+  scrollViewerTo = (highlight) => { }; // provided by PdfHighligher
 
   scrollToHighlightFromHash = () => {
     const highlight = this.getHighlightById(parseIdFromHash());
@@ -87,18 +84,18 @@ class App extends Component {
       ×
     </button>;
 
-  removeHighlight = (e) => {    
-    const highlightId = e.target.dataset.highlightid;    
-    const { highlights } = this.state;    
-    const removeIndex = highlights.findIndex(hl => hl.id === highlightId);    
+  removeHighlight = (e) => {
+    const highlightId = e.target.dataset.highlightid;
+    const { highlights } = this.state;
+    const removeIndex = highlights.findIndex(hl => hl.id === highlightId);
     if (removeIndex >= 0) {
-      const highlight = highlights[removeIndex];      
+      const highlight = highlights[removeIndex];
       highlights.splice(removeIndex, 1)
       this.setState({
         highlights: highlights
       });
       window.parent.postMessage({ deleted: highlight, url: encodeURI(url) }, '*');
-    }    
+    }
     e.target.style.display = "none";
   }
 
@@ -128,7 +125,7 @@ class App extends Component {
         imageRef.putString(highlight.content.image, 'data_url').then(() =>
           imageRef.getDownloadURL().then(imageUrl => {
             const highlightWithImage = { ...highlight };
-            highlightWithImage.imageUrl = imageUrl;            
+            highlightWithImage.imageUrl = imageUrl;
             window.parent.postMessage({ highlight: highlightWithImage, url: encodeURI(url) }, '*');
           }))
       } else {
@@ -146,28 +143,24 @@ class App extends Component {
       highlights: this.state.highlights.map(h => {
         return h.id === highlightId
           ? {
-              ...h,
-              position: { ...h.position, ...position },
-              content: { ...h.content, ...content }
-            }
+            ...h,
+            position: { ...h.position, ...position },
+            content: { ...h.content, ...content }
+          }
           : h;
       })
     });
   }
 
   zoom(delta) {
-    console.log("in zoom")
-    console.log(window.PdfViewer.viewer.currentScaleValue)
     let current = window.PdfViewer.viewer.currentScaleValue
     current = isNaN(current) ? 1 : parseFloat(current);
     window.PdfViewer.viewer.currentScaleValue = Math.max(0, current + delta);
   }
 
-  fit(event){
-    console.log("in fit")
-    console.log(window.PdfViewer.viewer.currentScaleValue)
-    let el = event.target;    
-    if(el.title === "Fit to page"){
+  fit(event) {
+    let el = event.target;
+    if (el.title === "Fit to page") {
       el.title = "Fit to width";
       window.PdfViewer.viewer.currentScaleValue = 'page-fit';
     } else {
@@ -177,13 +170,13 @@ class App extends Component {
   }
 
   render() {
-    const { highlights } = this.state;    
+    const { highlights } = this.state;
     return (
       <div className="App">
         <div className="toolbar">
-          <button id="zoom-in" title = "Zoom in" onClick={() => this.zoom(0.2)}>+</button>
-          <button id="zoom-out" title = "Zoom out" onClick={() => this.zoom(-0.2)}>-</button>
-          <button id="page-width-fit" title = "Fit to page" onClick={this.fit.bind(this)}>◽</button>
+          <button id="zoom-in" title="Zoom in" onClick={() => this.zoom(0.2)}>+</button>
+          <button id="zoom-out" title="Zoom out" onClick={() => this.zoom(-0.2)}>-</button>
+          <button id="page-width-fit" title="Fit to page" onClick={this.fit.bind(this)}>◽</button>
         </div>
         <div>
           <PdfLoader url={url} beforeLoad={<Spinner />} cMapUrl={"https://cdn.jsdelivr.net/npm/pdfjs-dist@2.6.347/cmaps/"} cMapPacked={true}>
@@ -203,7 +196,7 @@ class App extends Component {
                   hideTipAndSelection) => (
                   <Tip
                     onOpen={() => {
-                      this.addHighlight({ content, position, comment: ''}, true);
+                      this.addHighlight({ content, position, comment: '' }, true);
 
                       hideTipAndSelection();
                     }}
@@ -230,17 +223,17 @@ class App extends Component {
                       comment={highlight.comment}
                     />
                   ) : (
-                    <AreaHighlight
-                      highlight={highlight}
-                      onChange={boundingRect => {
-                        this.updateHighlight(
-                          highlight.id,
-                          { boundingRect: viewportToScaled(boundingRect) },
-                          { image: screenshot(boundingRect) }
-                        );
-                      }}
-                    />
-                  );
+                      <AreaHighlight
+                        highlight={highlight}
+                        onChange={boundingRect => {
+                          this.updateHighlight(
+                            highlight.id,
+                            { boundingRect: viewportToScaled(boundingRect) },
+                            { image: screenshot(boundingRect) }
+                          );
+                        }}
+                      />
+                    );
 
                   return (
                     <Popup
