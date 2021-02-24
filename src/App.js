@@ -46,6 +46,7 @@ const resetHash = () => {
 const url = decodeURI(document.location.search.split('url=')[1])
 
 class App extends Component {
+  dictionary = new Set();
   hasLoadedHighlights = false
   state = {
     highlights: []
@@ -61,7 +62,12 @@ class App extends Component {
     }
   };
 
-  componentDidMount() {
+  async componentDidMount() {
+    window.fetch('dict.txt').then(async (res) => {
+      const text = await res.text();
+      // TODO: remove extra space from lines in dictionary
+      this.dictionary = new Set(text.split(/\s*\n/));
+    });
     window.addEventListener(
       "hashchange",
       this.scrollToHighlightFromHash,
@@ -129,6 +135,7 @@ class App extends Component {
             window.parent.postMessage({ highlight: highlightWithImage, url: encodeURI(url) }, '*');
           }))
       } else {
+        highlight.content.text = this.fixText(highlight.content.text);
         window.parent.postMessage({ highlight, url: encodeURI(url) }, '*');
       }
     }
@@ -136,6 +143,22 @@ class App extends Component {
     this.setState({
       highlights: [{ ...highlight }, ...highlights]
     });
+  }
+
+  fixText(text) {
+    // Attempts to fix words that are joined across new lines.
+    const inDict = (word) => this.dictionary.has(word.toLowerCase());
+    const bisect = (word, index) => [word.slice(0, index), word.slice(index)];
+    return text.split(' ').map(word => {
+      if (inDict(word)) return word;
+      else {
+        // For any bisection of the word, are both parts in the dictionary?
+        const index = word.split('').findIndex((_, i) => bisect(word, i).every(w => inDict(w)));
+        if (index === -1) return word;
+        const splits = bisect(word, index);
+        return `${splits[0]} ${splits[1]}`;
+      }
+    }).join(' ');
   }
 
   updateHighlight(highlightId, position, content) {
