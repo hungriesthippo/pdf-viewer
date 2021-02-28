@@ -9,14 +9,16 @@ import {
   PdfLoader,
   PdfHighlighter,
   Tip,
-  Highlight,
   Popup,
-  AreaHighlight,
   setPdfWorker
 } from "react-pdf-highlighter";
 
 import Spinner from "./Spinner";
+import ColorfulHighlight from "./ColorfulHighlight"
+import ColorfulAreaHighlight from "./ColorfulAreaHighlight"
 import './App.css';
+import HighlightPopup from './HighlightPopup';
+
 
 setPdfWorker(PDFWorker);
 
@@ -46,6 +48,13 @@ const resetHash = () => {
 const url = decodeURI(document.location.search.split('url=')[1])
 
 class App extends Component {
+  constructor(props, context) {
+    super(props, context);
+    this.fit = this.fit.bind(this);
+    this.removeHighlight = this.removeHighlight.bind(this);
+    this.updateHighlightColor = this.updateHighlightColor.bind(this);
+  }
+
   dictionary = new Set();
   hasLoadedHighlights = false
   state = {
@@ -81,17 +90,27 @@ class App extends Component {
 
   getHighlightById(id) {
     const { highlights } = this.state;
-
     return highlights.find(highlight => highlight.id === id);
   }
 
-  HighlightPopup = (data) =>
-    <button className="remove" onClick={this.removeHighlight} data-highlightid={data.highlightId}>
-      ×
-    </button>;
-
-  removeHighlight = (e) => {
+  updateHighlightColor = (e) => {
     const highlightId = e.target.dataset.highlightid;
+    const clickedColor = e.target.className.match(/hl-col(\d+)/)[1]
+    let { highlights } = this.state;
+    const updateIndex = highlights.findIndex(hl => hl.id === highlightId);
+    if (updateIndex >= 0) {
+      highlights[updateIndex].color = clickedColor;
+      const highlight = highlights[updateIndex];
+      this.setState({
+        highlights: highlights
+      });
+      window.parent.postMessage({
+        highlight, actionType: 'updated', url: encodeURI(url)
+      }, '*');
+    }
+  }
+
+  deleteHighlight = (highlightId) => {
     const { highlights } = this.state;
     const removeIndex = highlights.findIndex(hl => hl.id === highlightId);
     if (removeIndex >= 0) {
@@ -100,9 +119,18 @@ class App extends Component {
       this.setState({
         highlights: highlights
       });
-      window.parent.postMessage({ deleted: highlight, url: encodeURI(url) }, '*');
+      return highlight;
     }
-    e.target.style.display = "none";
+    return null;
+  }
+
+  removeHighlight = (e) => {
+    const highlightId = e.target.dataset.highlightid;
+    const highlight = this.deleteHighlight(highlightId);
+    window.parent.postMessage({
+      highlight, actionType: 'deleted', url: encodeURI(url)
+    }, '*');
+    //e.target.style.display = "none";
   }
 
   handleMessage(event) {
@@ -110,6 +138,11 @@ class App extends Component {
     if (event.data.scrollTo) {
       this.scrollViewerTo(event.data.scrollTo);
       return;
+    }
+    // handl deleted highlight
+    if (event.data.deleted) {
+      const highlightId = event.data.deleted.id;
+      this.deleteHighlight(highlightId);
     }
     // handle load highlights
     if (!event.data.highlights || this.hasLoadedHighlights) return;
@@ -125,6 +158,7 @@ class App extends Component {
     // Send message with highlight content to hosting window
     if (sendMessage) {
       highlight.id = getNextId()
+      highlight.color = 0;
       if (highlight.content.image) {
         const filename = `${new Date().getTime()}.png`
         const imageRef = storageRef.child(`images/${filename}`)
@@ -132,11 +166,15 @@ class App extends Component {
           imageRef.getDownloadURL().then(imageUrl => {
             const highlightWithImage = { ...highlight };
             highlightWithImage.imageUrl = imageUrl;
-            window.parent.postMessage({ highlight: highlightWithImage, url: encodeURI(url) }, '*');
+            window.parent.postMessage({
+              highlight: highlightWithImage, actionType: 'added', url: encodeURI(url)
+            }, '*');
           }))
       } else {
         highlight.content.text = this.fixText(highlight.content.text);
-        window.parent.postMessage({ highlight, url: encodeURI(url) }, '*');
+        window.parent.postMessage({
+          highlight, actionType: 'added', url: encodeURI(url)
+        }, '*');
       }
     }
 
@@ -161,14 +199,15 @@ class App extends Component {
     }).join(' ');
   }
 
-  updateHighlight(highlightId, position, content) {
+  updateHighlight(highlightId, position, content, color) {
     this.setState({
       highlights: this.state.highlights.map(h => {
         return h.id === highlightId
           ? {
             ...h,
             position: { ...h.position, ...position },
-            content: { ...h.content, ...content }
+            content: { ...h.content, ...content },
+            color: { ...h.color, ...color }
           }
           : h;
       })
@@ -199,7 +238,7 @@ class App extends Component {
         <div className="toolbar">
           <button id="zoom-in" title="Zoom in" onClick={() => this.zoom(0.2)}>+</button>
           <button id="zoom-out" title="Zoom out" onClick={() => this.zoom(-0.2)}>-</button>
-          <button id="page-width-fit" title="Fit to page" onClick={this.fit.bind(this)}>◽</button>
+          <button id="page-width-fit" title="Fit to page" onClick={this.fit}>◽</button>
         </div>
         <div>
           <PdfLoader url={url} beforeLoad={<Spinner />} cMapUrl={"https://cdn.jsdelivr.net/npm/pdfjs-dist@2.6.347/cmaps/"} cMapPacked={true}>
@@ -210,7 +249,6 @@ class App extends Component {
                 onScrollChange={resetHash}
                 scrollRef={scrollTo => {
                   this.scrollViewerTo = scrollTo;
-
                   this.scrollToHighlightFromHash();
                 }}
                 onSelectionFinished={(
@@ -220,7 +258,6 @@ class App extends Component {
                   <Tip
                     onOpen={() => {
                       this.addHighlight({ content, position, comment: '' }, true);
-
                       hideTipAndSelection();
                     }}
                   />
@@ -240,19 +277,20 @@ class App extends Component {
                   );
 
                   const component = isTextHighlight ? (
-                    <Highlight
+                    <ColorfulHighlight
                       isScrolledTo={isScrolledTo}
                       position={highlight.position}
                       comment={highlight.comment}
+                      color={highlight.color}
                     />
                   ) : (
-                      <AreaHighlight
+                      <ColorfulAreaHighlight
                         highlight={highlight}
                         onChange={boundingRect => {
                           this.updateHighlight(
                             highlight.id,
                             { boundingRect: viewportToScaled(boundingRect) },
-                            { image: screenshot(boundingRect) }
+                            { image: screenshot(boundingRect) },
                           );
                         }}
                       />
@@ -260,7 +298,13 @@ class App extends Component {
 
                   return (
                     <Popup
-                      popupContent={<this.HighlightPopup highlightId={highlight.id} />}
+                      popupContent={
+                        <HighlightPopup
+                          highlightId={highlight.id}
+                          removeHighlight={this.removeHighlight}
+                          updateColor={this.updateHighlightColor}
+                        />
+                      }
                       onMouseOver={popupContent =>
                         setTip(highlight, highlight => popupContent)
                       }
