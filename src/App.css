@@ -51,33 +51,89 @@ blockquote:after {
   border: 0;
   border-radius: 12px;
   transition: filter 0.3s ease 0.3s;
-
   box-shadow: 0px 3px 3px rgba(0, 0, 0, 0.2);
   cursor: pointer;
-  font-size: 20px;
+  font-size: 15px;
   height: 28px;
   margin: 4px;
   width: 28px;
   outline: none;
 }
 
-button:active {
-  box-shadow: inset 1px 1px 3px #111;
+.toolbar button:active {
+  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-.remove {
-  border: 0;
-  border-radius: 12px;
-  box-shadow: 0px 3px 3px rgba(0, 0, 0, 0.2);
-  cursor: pointer;
-  font-size: 20px;
-  height: 28px;
-  margin: 4px;
-  width: 28px;
+.updateHighlightPopup  {
+  border-radius: 5px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border: 0px;
+  display: flex;
+  flex-direction: row;
+}
+
+
+.updateHighlightPopup  button{
+  border: 0px !important;
+  border-radius: 20px !important;
+  cursor: pointer !important;
+  transition: filter 0.3s ease 0.3s;
+  font-size: 10px;
+  height: 17px;
+  width: 17px;
+  margin: 2px;  
   outline: none;
 }
+
+.updateHighlightPopup  button:active{
+  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.remove {  
+}
+
+.hl-col0{  
+  border: 0px !important;
+}
+
+.hl-col1{  
+  background-color: rgba(255, 243, 174, .7) !important;
+  border: 0px !important;
+}
+.hl-col2{  
+  background-color: rgba(255, 132, 132, .7) !important;
+  border: 0px !important;
+}
+.hl-col3{  
+  background-color: rgba(155, 253, 130, .7) !important;
+  border: 0px !important;
+}
+.hl-col4{  
+  background-color: rgba(130, 169, 255, .7) !important;
+  border: 0px !important;
+}
+.hl-col5{  
+  background-color: rgba(224, 147, 255, 0.7) !important;
+  border: 0px !important;
+}
+
 
 .pdfViewer.removePageBorders .page {
   border: 1px solid gray !important;
   box-shadow: 1px 1px gray !important;
+}
+
+.textLayer ::selection {
+  background: rgba(252, 132, 63, 0.5) !important;
+}
+
+.MouseSelection {
+  background: rgba(252, 132, 63, 0.5) !important;
+}
+
+.ColorfulAreaHighlight {
+  border: 1px solid #333;
+  background-color: rgba(252, 232, 151, 1.0);
+  opacity: 1;
+  mix-blend-mode: multiply;
 }
