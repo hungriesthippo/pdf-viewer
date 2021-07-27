@@ -37,23 +37,56 @@ blockquote:after {
   content: close-quote;
 }
 
+#pageToolbar {
+  color: rgb(255, 255, 255);
+  font-size: 14px;
+  margin-top: 8px;
+  margin-left: 8px;
+}
+
+/*Change CSS when the size gets less than 50 percent of the fit*/
+
+/* div.page {
+  float:left;
+} */
+
+#zoom-selector{
+  text-align: center;
+}
+
+#page-selector{
+  text-align: center;
+}
+
+#pagelength{
+  color: rgb(189, 189, 189);
+}
+
+html, body { overflow: hidden; }
+
+
 .toolbar {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  background-color: rgb(50, 54, 57);
+  color: rgb(189, 189, 189);
   justify-content: center;
-  position: absolute;
-  right: 24px;
-  top: 48px;
+  position: relative;
+  right: 20px;
+  top: 0px;
   z-index: 999;
+  overflow: hidden;
 }
 
 .toolbar button {
   border: 0;
   border-radius: 12px;
   transition: filter 0.3s ease 0.3s;
-  box-shadow: 0px 3px 3px rgba(0, 0, 0, 0.2);
+  /* box-shadow: 0px 3px 3px rgba(0, 0, 0, 0.2); */
   cursor: pointer;
-  font-size: 15px;
+  background-color: rgb(50, 54, 57);
+  color: rgb(189, 189, 189);
+  font-size: 1.1em;
   height: 28px;
   margin: 4px;
   width: 28px;
@@ -65,13 +98,19 @@ blockquote:after {
 }
 
 .updateHighlightPopup  {
-  border-radius: 5px;
   background-color: rgba(0, 0, 0, 0.1);
   border: 0px;
   display: flex;
   flex-direction: row;
 }
 
+.firstRow {
+  border-radius: 5px 5px 0px 0px;
+}
+
+.secondRow{
+  border-radius: 0px 0px 5px 5px;
+}
 
 .updateHighlightPopup  button{
   border: 0px !important;
@@ -92,7 +131,15 @@ blockquote:after {
 .remove {  
 }
 
+.buttonsRow {
+  height: 50% !important;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 .hl-col0{  
+  background-color: rgba(255, 226, 143, .8) !important;
   border: 0px !important;
 }
 
@@ -116,7 +163,10 @@ blockquote:after {
   background-color: rgba(224, 147, 255, 0.7) !important;
   border: 0px !important;
 }
-
+.hl-col6{  
+  background-color: rgba(172,172,172, 0.7) !important;
+  border: 0px !important;
+}
 
 .pdfViewer.removePageBorders .page {
   border: 1px solid gray !important;
@@ -124,11 +174,11 @@ blockquote:after {
 }
 
 .textLayer ::selection {
-  background: rgba(252, 132, 63, 0.5) !important;
+  background: rgba(128, 255, 234, 0.5) !important;
 }
 
 .MouseSelection {
-  background: rgba(252, 132, 63, 0.5) !important;
+  background: rgba(128, 255, 234, 0.5) !important;
 }
 
 .ColorfulAreaHighlight {

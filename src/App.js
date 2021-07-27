@@ -1,6 +1,9 @@
 import React, { Component } from "react";
 /* eslint import/no-webpack-loader-syntax: 0 */
 import PDFWorker from "worker-loader!pdfjs-dist/lib/pdf.worker.js";
+// import { PDFFindBar } from "pdfjs-dist/lib/web/pdf_find_bar.js";
+// import { PDFFindController } from "pdfjs-dist/lib/web/pdf_find_controller.js";
+
 
 import firebase from 'firebase/app';
 import 'firebase/storage';
@@ -18,6 +21,8 @@ import ColorfulHighlight from "./ColorfulHighlight"
 import ColorfulAreaHighlight from "./ColorfulAreaHighlight"
 import './App.css';
 import HighlightPopup from './HighlightPopup';
+import PdfToolbar from './PdfToolbar';
+import { render } from "@testing-library/react";
 
 
 setPdfWorker(PDFWorker);
@@ -50,16 +55,27 @@ const url = decodeURI(document.location.search.split('url=')[1])
 class App extends Component {
   constructor(props, context) {
     super(props, context);
-    this.fit = this.fit.bind(this);
+
+    this.state = {
+      highlights: [],
+      pdfReady: false,
+      zoomString: '',
+      curPage: 1
+    };
+
     this.removeHighlight = this.removeHighlight.bind(this);
     this.updateHighlightColor = this.updateHighlightColor.bind(this);
+    this.copyBlockRfHighlight = this.copyBlockRfHighlight.bind(this);
+    this.openHighlightBlock = this.openHighlightBlock.bind(this);
+    this.pageNav = this.pageNav.bind(this);
+    this.fit = this.fit.bind(this);
+    this.contZoom = this.contZoom.bind(this);
+    this.zoom = this.zoom.bind(this);
+    this.resizeend = this.resizeend.bind(this);
   }
 
   dictionary = new Set();
-  hasLoadedHighlights = false
-  state = {
-    highlights: []
-  };
+  hasLoadedHighlights = false;
 
   scrollViewerTo = (highlight) => { }; // provided by PdfHighligher
 
@@ -71,32 +87,86 @@ class App extends Component {
     }
   };
 
+
+  timeout = false;
+  rtime = 0;
+  delta = 500;
   async componentDidMount() {
     window.fetch('dict.txt').then(async (res) => {
       const text = await res.text();
       // TODO: remove extra space from lines in dictionary
       this.dictionary = new Set(text.split(/\s*\n/));
     });
-    window.addEventListener(
-      "hashchange",
+    window.addEventListener('hashchange',
       this.scrollToHighlightFromHash,
       false
     );
-    window.addEventListener(
-      'message',
+    window.addEventListener('message',
       e => this.handleMessage(e),
-      false);
+      false
+    );
+
+    window.addEventListener('resize',
+      () => {
+        this.rtime = new Date();
+        if (this.timeout === false) {
+          this.timeout = true;
+          setTimeout(this.resizeend, this.delta);
+        }
+      });
   }
 
+  resizeend() {
+    if (new Date() - this.rtime < this.delta) {
+      setTimeout(this.resizeend, this.delta);
+    } else {
+      this.timeout = false;      
+      this.setState({ zoomString: Math.round(window.PdfViewer.viewer._currentScale * 100) + '%' })
+    }
+  }
+
+  async componentDidUpdate() {
+    if(!typeof(window.PdfViewer)) return;
+    if (!this.state.pdfReady) {
+      if(!window.PdfViewer) return; 
+      window.PdfViewer.eventBus.on('pagechanging', (e) => {
+        this.setState({ curPage: window.PdfViewer.viewer.currentPageNumber })
+      });
+      this.setState({ pdfReady: true })
+      this.setState({ zoomString: Math.round(window.PdfViewer.viewer._currentScale * 100) + '%' })
+    }
+  }
+
+
   getHighlightById(id) {
-    const { highlights } = this.state;
+    const highlights = this.state.highlights;
     return highlights.find(highlight => highlight.id === id);
+  }
+
+  copyBlockRfHighlight = (e) => {
+    const highlightId = e.target.dataset.highlightid;
+    const highlights = this.state.highlights;
+    const hlIndex = highlights.findIndex(hl => hl.id === highlightId);
+    const highlight = highlights[hlIndex];
+    window.parent.postMessage({
+      highlight, actionType: 'copyRef', url: encodeURI(url)
+    }, '*');
+  }
+
+  openHighlightBlock = (e) => {
+    const highlightId = e.target.dataset.highlightid;
+    const highlights = this.state.highlights;
+    const hlIndex = highlights.findIndex(hl => hl.id === highlightId);
+    const highlight = highlights[hlIndex];
+    window.parent.postMessage({
+      highlight, actionType: 'openHlBlock', url: encodeURI(url)
+    }, '*');
   }
 
   updateHighlightColor = (e) => {
     const highlightId = e.target.dataset.highlightid;
     const clickedColor = e.target.className.match(/hl-col(\d+)/)[1]
-    let { highlights } = this.state;
+    let highlights = this.state.highlights;
     const updateIndex = highlights.findIndex(hl => hl.id === highlightId);
     if (updateIndex >= 0) {
       highlights[updateIndex].color = clickedColor;
@@ -111,7 +181,7 @@ class App extends Component {
   }
 
   deleteHighlight = (highlightId) => {
-    const { highlights } = this.state;
+    const highlights = this.state.highlights;
     const removeIndex = highlights.findIndex(hl => hl.id === highlightId);
     if (removeIndex >= 0) {
       const highlight = highlights[removeIndex];
@@ -153,7 +223,7 @@ class App extends Component {
   }
 
   addHighlight(highlight, sendMessage) {
-    const { highlights } = this.state;
+    const highlights = this.state.highlights;
 
     // Send message with highlight content to hosting window
     if (sendMessage) {
@@ -214,32 +284,90 @@ class App extends Component {
     });
   }
 
-  zoom(delta) {
-    let current = window.PdfViewer.viewer.currentScaleValue
-    current = isNaN(current) ? 1 : parseFloat(current);
-    window.PdfViewer.viewer.currentScaleValue = Math.max(0, current + delta);
-  }
+  pageNav = (e) => {
+    if (this.state.pdfReady) {
+      if (e.key === 'Enter') {
+        let proposedPageNr = parseInt(e.target.value)
+        if (isNaN(proposedPageNr) || proposedPageNr < 1 || proposedPageNr > window.PdfViewer.viewer.pagesCount)
+          e.target.value = window.PdfViewer.viewer.currentPageNumber
+        else
+          window.PdfViewer.viewer.currentPageNumber = proposedPageNr
+      }
+    }
+  }  // style="--page-length-digits:2;"> window.PdfViewer.viewer.pagesCount
 
-  fit(event) {
-    let el = event.target;
-    if (el.title === "Fit to page") {
-      el.title = "Fit to width";
-      window.PdfViewer.viewer.currentScaleValue = 'page-fit';
-    } else {
-      el.title = "Fit to page";
-      window.PdfViewer.viewer.currentScaleValue = 'page-width';
+  fit = (e) => {
+    if (this.state.pdfReady) {
+      let el = e.target;
+      if (el.title === "Fit to page") {
+        el.title = "Fit to width";
+        el.innerText = '\u2194';
+        window.PdfViewer.viewer.currentScaleValue = 'page-fit';
+      } else {
+        el.title = "Fit to page";
+        el.innerText = '\u2195';
+        window.PdfViewer.viewer.currentScaleValue = 'page-width';
+      }
+      this.setState({
+        zoomString: Math.round(window.PdfViewer.viewer._currentScale * 100) + '%'
+      });
     }
   }
 
+  contZoom = (e) => {
+    if (this.state.pdfReady) {
+      if (e.key === 'Enter') {
+        let curZoom = window.PdfViewer.viewer._currentScale;
+        let zoomStr, zoomVal;
+        let enteredZoomStr = e.target.value;
+        if (enteredZoomStr[enteredZoomStr.length - 1] === '%')
+          enteredZoomStr = enteredZoomStr.slice(0, -1)
+        let proposedZoom = parseInt(enteredZoomStr)
+        if (isNaN(proposedZoom)) {
+          zoomStr = Math.round(curZoom * 100) + '%';
+          zoomVal = curZoom;
+        } else if (proposedZoom < 25) {
+          zoomStr = '25%';
+          zoomVal = .25;
+        } else if (proposedZoom > 500) {
+          zoomStr = '500%';
+          zoomVal = 5;
+        } else {
+          zoomStr = proposedZoom + '%'
+          zoomVal = proposedZoom / 100
+        }
+        e.target.value = zoomStr
+        window.PdfViewer.viewer.currentScaleValue = zoomVal
+      }
+    }
+  }
+
+  zoom = (delta) => {
+    if (this.state.pdfReady) {
+      let current = window.PdfViewer.viewer._currentScale;      
+      const zoomVal = Math.min(Math.max(.2, current + delta), 5);
+      window.PdfViewer.viewer.currentScaleValue = zoomVal;
+      this.setState({
+        zoomString: Math.round(zoomVal * 100) + '%'
+      });
+    }
+  }
+
+
   render() {
-    const { highlights } = this.state;
+    const highlights = this.state.highlights;
     return (
       <div className="App">
-        <div className="toolbar">
-          <button id="zoom-in" title="Zoom in" onClick={() => this.zoom(0.2)}>+</button>
-          <button id="zoom-out" title="Zoom out" onClick={() => this.zoom(-0.2)}>-</button>
-          <button id="page-width-fit" title="Fit to page" onClick={this.fit}>◽</button>
-        </div>
+        {
+          this.state.pdfReady &&
+          <PdfToolbar
+            pageNav={this.pageNav} fit={this.fit} contZoom={this.contZoom} zoom={this.zoom}
+            curPage={this.state.curPage}
+            totalPages={window.PdfViewer.viewer.pagesCount}
+            zoomString={this.state.zoomString}
+          />
+        }
+
         <div>
           <PdfLoader url={url} beforeLoad={<Spinner />} cMapUrl={"https://cdn.jsdelivr.net/npm/pdfjs-dist@2.6.347/cmaps/"} cMapPacked={true}>
             {pdfDocument => (
@@ -247,6 +375,7 @@ class App extends Component {
                 pdfDocument={pdfDocument}
                 enableAreaSelection={event => event.altKey}
                 onScrollChange={resetHash}
+                ref={x => x?.resizeObserver.disconnect()}
                 scrollRef={scrollTo => {
                   this.scrollViewerTo = scrollTo;
                   this.scrollToHighlightFromHash();
@@ -284,17 +413,17 @@ class App extends Component {
                       color={highlight.color}
                     />
                   ) : (
-                      <ColorfulAreaHighlight
-                        highlight={highlight}
-                        onChange={boundingRect => {
-                          this.updateHighlight(
-                            highlight.id,
-                            { boundingRect: viewportToScaled(boundingRect) },
-                            { image: screenshot(boundingRect) },
-                          );
-                        }}
-                      />
-                    );
+                    <ColorfulAreaHighlight
+                      highlight={highlight}
+                      onChange={boundingRect => {
+                        this.updateHighlight(
+                          highlight.id,
+                          { boundingRect: viewportToScaled(boundingRect) },
+                          { image: screenshot(boundingRect) },
+                        );
+                      }}
+                    />
+                  );
 
                   return (
                     <Popup
@@ -303,6 +432,8 @@ class App extends Component {
                           highlightId={highlight.id}
                           removeHighlight={this.removeHighlight}
                           updateColor={this.updateHighlightColor}
+                          copyBlockRfHighlight={this.copyBlockRfHighlight}
+                          openHighlightBlock={this.openHighlightBlock}
                         />
                       }
                       onMouseOver={popupContent =>
