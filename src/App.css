@@ -177,6 +177,10 @@ html, body { overflow: hidden; }
   background: rgba(128, 255, 234, 0.5) !important;
 }
 
+.wholePopup{
+} 
+
+
 .MouseSelection {
   background: rgba(128, 255, 234, 0.5) !important;
 }

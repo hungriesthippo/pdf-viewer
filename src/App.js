@@ -12,7 +12,6 @@ import {
   PdfLoader,
   PdfHighlighter,
   Tip,
-  Popup,
   setPdfWorker
 } from "react-pdf-highlighter";
 
@@ -21,8 +20,8 @@ import ColorfulHighlight from "./ColorfulHighlight"
 import ColorfulAreaHighlight from "./ColorfulAreaHighlight"
 import './App.css';
 import HighlightPopup from './HighlightPopup';
+import ModPopup from './ModPopup';
 import PdfToolbar from './PdfToolbar';
-import { render } from "@testing-library/react";
 
 
 setPdfWorker(PDFWorker);
@@ -426,7 +425,7 @@ class App extends Component {
                   );
 
                   return (
-                    <Popup
+                    <ModPopup
                       popupContent={
                         <HighlightPopup
                           highlightId={highlight.id}

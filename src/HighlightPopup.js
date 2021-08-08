@@ -16,7 +16,7 @@ function HighlightPopup(props) {
                         onColorClick={props.updateColor}
                 />)
         return (
-                <div>
+                <div className="wholePopup">
                         <div className="updateHighlightPopup firstRow">
                                 <button className="openBlock"
                                         onClick={props.openHighlightBlock}
